@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:apifetchdata/postdetailscreen.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -18,28 +20,32 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class PostListScreen extends StatelessWidget {
-  // Dummy data for posts
-  final List<Map<String, dynamic>> posts = [
-    {
-      'username': 'User1',
-      'content': 'sunt aut facere repellat provident occaecati excepturi optio reprehenderit',
-      'likes': 2,
-      'profileImage': 'https://via.placeholder.com/50'
-    },
-    {
-      'username': 'User2',
-      'content': 'sunt aut facere repellat provident occaecati excepturi optio reprehenderit',
-      'likes': 5,
-      'profileImage': 'https://via.placeholder.com/50'
-    } ,
-    {
-      'username': 'User3',
-      'content': 'sunt aut facere repellat provident occaecati excepturi optio reprehenderit',
-      'likes': 8,
-      'profileImage': 'https://via.placeholder.com/50'
+class PostListScreen extends StatefulWidget {
+  @override
+  _PostListScreenState createState() => _PostListScreenState();
+}
+
+class _PostListScreenState extends State<PostListScreen> {
+  List<dynamic> posts = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPosts();
+  }
+
+  Future<void> fetchPosts() async {
+    final response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/posts'));
+    if (response.statusCode == 200) {
+      setState(() {
+        posts = json.decode(response.body);
+        isLoading = false;
+      });
+    } else {
+      throw Exception('Failed to load posts');
     }
-  ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,14 +76,15 @@ class PostListScreen extends StatelessWidget {
           )
         ],
       ),
-      body: Column(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           Container(
             padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Tab buttons for "Trending", "Relationship", "Self Care"
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
@@ -103,24 +110,22 @@ class PostListScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
-                    if (posts[index]['username'] == 'User1') {
-                      // Navigate to the PostDetailScreen when User1's post is clicked
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PostDetailScreen(
-                            title: posts[index]['username'],
-                            content: posts[index]['content'],
-                          ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostDetailScreen(
+
+                          title: posts[index]['title'],
+                          content: posts[index]['body'],
                         ),
-                      );
-                    }
+                      ),
+                    );
                   },
                   child: PostCard(
-                    username: posts[index]['username'],
-                    content: posts[index]['content'],
-                    initialLikes: posts[index]['likes'],
-                    profileImage: posts[index]['profileImage'],
+                    username: 'User${posts[index]['userId']}', // Placeholder username
+                    content: posts[index]['body'],
+                    initialLikes: 0, // Placeholder likes
+                    profileImage: 'https://via.placeholder.com/150', // Placeholder image
                   ),
                 );
               },
@@ -210,9 +215,7 @@ class _PostCardState extends State<PostCard> {
                 Text('$likes'),
                 Spacer(),
                 IconButton(
-                  onPressed: () {
-                    // Share functionality can go here
-                  },
+                  onPressed: () {},
                   icon: Icon(Icons.share_outlined),
                 ),
               ],
